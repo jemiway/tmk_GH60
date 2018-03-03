@@ -1,0 +1,953 @@
+   1               		.file	"keymap.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.section	.text.keycode_to_action,"ax",@progbits
+  12               	keycode_to_action:
+  13               	.LFB106:
+  14               		.file 1 "../../tmk_core/common/keymap.c"
+   1:../../tmk_core/common/keymap.c **** /*
+   2:../../tmk_core/common/keymap.c **** Copyright 2013 Jun Wako <wakojun@gmail.com>
+   3:../../tmk_core/common/keymap.c **** 
+   4:../../tmk_core/common/keymap.c **** This program is free software: you can redistribute it and/or modify
+   5:../../tmk_core/common/keymap.c **** it under the terms of the GNU General Public License as published by
+   6:../../tmk_core/common/keymap.c **** the Free Software Foundation, either version 2 of the License, or
+   7:../../tmk_core/common/keymap.c **** (at your option) any later version.
+   8:../../tmk_core/common/keymap.c **** 
+   9:../../tmk_core/common/keymap.c **** This program is distributed in the hope that it will be useful,
+  10:../../tmk_core/common/keymap.c **** but WITHOUT ANY WARRANTY; without even the implied warranty of
+  11:../../tmk_core/common/keymap.c **** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  12:../../tmk_core/common/keymap.c **** GNU General Public License for more details.
+  13:../../tmk_core/common/keymap.c **** 
+  14:../../tmk_core/common/keymap.c **** You should have received a copy of the GNU General Public License
+  15:../../tmk_core/common/keymap.c **** along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  16:../../tmk_core/common/keymap.c **** */
+  17:../../tmk_core/common/keymap.c **** #include "keymap.h"
+  18:../../tmk_core/common/keymap.c **** #include "report.h"
+  19:../../tmk_core/common/keymap.c **** #include "keycode.h"
+  20:../../tmk_core/common/keymap.c **** #include "action_layer.h"
+  21:../../tmk_core/common/keymap.c **** #include "action.h"
+  22:../../tmk_core/common/keymap.c **** #include "action_macro.h"
+  23:../../tmk_core/common/keymap.c **** #include "wait.h"
+  24:../../tmk_core/common/keymap.c **** #include "debug.h"
+  25:../../tmk_core/common/keymap.c **** 
+  26:../../tmk_core/common/keymap.c **** 
+  27:../../tmk_core/common/keymap.c **** static action_t keycode_to_action(uint8_t keycode);
+  28:../../tmk_core/common/keymap.c **** 
+  29:../../tmk_core/common/keymap.c **** // Jemi&20160118
+  30:../../tmk_core/common/keymap.c **** /* converts key to action */
+  31:../../tmk_core/common/keymap.c **** action_t action_for_key(uint8_t layer, keypos_t key)
+  32:../../tmk_core/common/keymap.c **** {
+  33:../../tmk_core/common/keymap.c ****     uint8_t keycode = keymap_key_to_keycode(layer, key);
+  34:../../tmk_core/common/keymap.c ****     switch (keycode) {
+  35:../../tmk_core/common/keymap.c ****         case KC_FN0 ... KC_FN31:
+  36:../../tmk_core/common/keymap.c ****             return keymap_fn_to_action(keycode);
+  37:../../tmk_core/common/keymap.c **** #ifdef BOOTMAGIC_ENABLE
+  38:../../tmk_core/common/keymap.c ****         case KC_CAPSLOCK:
+  39:../../tmk_core/common/keymap.c ****         case KC_LOCKING_CAPS:
+  40:../../tmk_core/common/keymap.c ****             if (keymap_config.swap_control_capslock || keymap_config.capslock_to_control) {
+  41:../../tmk_core/common/keymap.c ****                 return keycode_to_action(KC_LCTL);
+  42:../../tmk_core/common/keymap.c ****             }
+  43:../../tmk_core/common/keymap.c ****             return keycode_to_action(keycode);
+  44:../../tmk_core/common/keymap.c ****         case KC_LCTL:
+  45:../../tmk_core/common/keymap.c ****             if (keymap_config.swap_control_capslock) {
+  46:../../tmk_core/common/keymap.c ****                 return keycode_to_action(KC_CAPSLOCK);
+  47:../../tmk_core/common/keymap.c ****             }
+  48:../../tmk_core/common/keymap.c ****             return keycode_to_action(KC_LCTL);
+  49:../../tmk_core/common/keymap.c ****         case KC_LALT:
+  50:../../tmk_core/common/keymap.c ****             if (keymap_config.swap_lalt_lgui) {
+  51:../../tmk_core/common/keymap.c ****                 if (keymap_config.no_gui) {
+  52:../../tmk_core/common/keymap.c ****                     return keycode_to_action(ACTION_NO);
+  53:../../tmk_core/common/keymap.c ****                 }
+  54:../../tmk_core/common/keymap.c ****                 return keycode_to_action(KC_LGUI);
+  55:../../tmk_core/common/keymap.c ****             }
+  56:../../tmk_core/common/keymap.c ****             return keycode_to_action(KC_LALT);
+  57:../../tmk_core/common/keymap.c ****         case KC_LGUI:
+  58:../../tmk_core/common/keymap.c ****             if (keymap_config.swap_lalt_lgui) {
+  59:../../tmk_core/common/keymap.c ****                 return keycode_to_action(KC_LALT);
+  60:../../tmk_core/common/keymap.c ****             }
+  61:../../tmk_core/common/keymap.c ****             if (keymap_config.no_gui) {
+  62:../../tmk_core/common/keymap.c ****                 return keycode_to_action(ACTION_NO);
+  63:../../tmk_core/common/keymap.c ****             }
+  64:../../tmk_core/common/keymap.c ****             return keycode_to_action(KC_LGUI);
+  65:../../tmk_core/common/keymap.c ****         case KC_RALT:
+  66:../../tmk_core/common/keymap.c ****             if (keymap_config.swap_ralt_rgui) {
+  67:../../tmk_core/common/keymap.c ****                 if (keymap_config.no_gui) {
+  68:../../tmk_core/common/keymap.c ****                     return keycode_to_action(ACTION_NO);
+  69:../../tmk_core/common/keymap.c ****                 }
+  70:../../tmk_core/common/keymap.c ****                 return keycode_to_action(KC_RGUI);
+  71:../../tmk_core/common/keymap.c ****             }
+  72:../../tmk_core/common/keymap.c ****             return keycode_to_action(KC_RALT);
+  73:../../tmk_core/common/keymap.c ****         case KC_RGUI:
+  74:../../tmk_core/common/keymap.c ****             if (keymap_config.swap_ralt_rgui) {
+  75:../../tmk_core/common/keymap.c ****                 return keycode_to_action(KC_RALT);
+  76:../../tmk_core/common/keymap.c ****             }
+  77:../../tmk_core/common/keymap.c ****             if (keymap_config.no_gui) {
+  78:../../tmk_core/common/keymap.c ****                 return keycode_to_action(ACTION_NO);
+  79:../../tmk_core/common/keymap.c ****             }
+  80:../../tmk_core/common/keymap.c ****             return keycode_to_action(KC_RGUI);
+  81:../../tmk_core/common/keymap.c ****         case KC_GRAVE:
+  82:../../tmk_core/common/keymap.c ****             if (keymap_config.swap_grave_esc) {
+  83:../../tmk_core/common/keymap.c ****                 return keycode_to_action(KC_ESC);
+  84:../../tmk_core/common/keymap.c ****             }
+  85:../../tmk_core/common/keymap.c ****             return keycode_to_action(KC_GRAVE);
+  86:../../tmk_core/common/keymap.c ****         case KC_ESC:
+  87:../../tmk_core/common/keymap.c ****             if (keymap_config.swap_grave_esc) {
+  88:../../tmk_core/common/keymap.c ****                 return keycode_to_action(KC_GRAVE);
+  89:../../tmk_core/common/keymap.c ****             }
+  90:../../tmk_core/common/keymap.c ****             return keycode_to_action(KC_ESC);
+  91:../../tmk_core/common/keymap.c ****         case KC_BSLASH:
+  92:../../tmk_core/common/keymap.c ****             if (keymap_config.swap_backslash_backspace) {
+  93:../../tmk_core/common/keymap.c ****                 return keycode_to_action(KC_BSPACE);
+  94:../../tmk_core/common/keymap.c ****             }
+  95:../../tmk_core/common/keymap.c ****             return keycode_to_action(KC_BSLASH);
+  96:../../tmk_core/common/keymap.c ****         case KC_BSPACE:
+  97:../../tmk_core/common/keymap.c ****             if (keymap_config.swap_backslash_backspace) {
+  98:../../tmk_core/common/keymap.c ****                 return keycode_to_action(KC_BSLASH);
+  99:../../tmk_core/common/keymap.c ****             }
+ 100:../../tmk_core/common/keymap.c ****             return keycode_to_action(KC_BSPACE);
+ 101:../../tmk_core/common/keymap.c **** #endif
+ 102:../../tmk_core/common/keymap.c ****         default:
+ 103:../../tmk_core/common/keymap.c ****             return keycode_to_action(keycode);
+ 104:../../tmk_core/common/keymap.c ****     }
+ 105:../../tmk_core/common/keymap.c **** }
+ 106:../../tmk_core/common/keymap.c **** 
+ 107:../../tmk_core/common/keymap.c **** 
+ 108:../../tmk_core/common/keymap.c **** /* Macro */
+ 109:../../tmk_core/common/keymap.c **** __attribute__ ((weak))
+ 110:../../tmk_core/common/keymap.c **** const macro_t *action_get_macro(keyrecord_t *record, uint8_t id, uint8_t opt)
+ 111:../../tmk_core/common/keymap.c **** {
+ 112:../../tmk_core/common/keymap.c ****     return MACRO_NONE;
+ 113:../../tmk_core/common/keymap.c **** }
+ 114:../../tmk_core/common/keymap.c **** 
+ 115:../../tmk_core/common/keymap.c **** /* Function */
+ 116:../../tmk_core/common/keymap.c **** __attribute__ ((weak))
+ 117:../../tmk_core/common/keymap.c **** void action_function(keyrecord_t *record, uint8_t id, uint8_t opt)
+ 118:../../tmk_core/common/keymap.c **** {
+ 119:../../tmk_core/common/keymap.c **** }
+ 120:../../tmk_core/common/keymap.c **** 
+ 121:../../tmk_core/common/keymap.c **** 
+ 122:../../tmk_core/common/keymap.c **** // Jemi&20160118
+ 123:../../tmk_core/common/keymap.c **** /* translates keycode to action */
+ 124:../../tmk_core/common/keymap.c **** static action_t keycode_to_action(uint8_t keycode)
+ 125:../../tmk_core/common/keymap.c **** {
+  15               		.loc 1 125 0
+  16               		.cfi_startproc
+  17               	.LVL0:
+  18 0000 CF93      		push r28
+  19               	.LCFI0:
+  20               		.cfi_def_cfa_offset 3
+  21               		.cfi_offset 28, -2
+  22 0002 DF93      		push r29
+  23               	.LCFI1:
+  24               		.cfi_def_cfa_offset 4
+  25               		.cfi_offset 29, -3
+  26               	/* prologue: function */
+  27               	/* frame size = 0 */
+  28               	/* stack size = 2 */
+  29               	.L__stack_usage = 2
+ 126:../../tmk_core/common/keymap.c ****     action_t action;
+ 127:../../tmk_core/common/keymap.c ****     switch (keycode) {
+  30               		.loc 1 127 0
+  31 0004 8D3B      		cpi r24,lo8(-67)
+  32 0006 00F4      		brsh .L3
+  33 0008 883A      		cpi r24,lo8(-88)
+  34 000a 00F4      		brsh .L4
+  35 000c 853A      		cpi r24,lo8(-91)
+  36 000e 00F4      		brsh .L5
+  37 0010 8430      		cpi r24,lo8(4)
+  38 0012 00F4      		brsh .L6
+  39 0014 8130      		cpi r24,lo8(1)
+  40 0016 01F4      		brne .+2
+  41 0018 00C0      		rjmp .L11
+  42 001a 00C0      		rjmp .L2
+  43               	.L3:
+  44 001c 883E      		cpi r24,lo8(-24)
+  45 001e 00F4      		brsh .L8
+  46 0020 803E      		cpi r24,lo8(-32)
+  47 0022 00F4      		brsh .L6
+  48 0024 8F3B      		cpi r24,lo8(-65)
+  49 0026 01F4      		brne .+2
+  50 0028 00C0      		rjmp .L9
+  51 002a 00C0      		rjmp .L2
+  52               	.L8:
+  53 002c 803F      		cpi r24,lo8(-16)
+  54 002e 00F0      		brlo .+2
+  55 0030 00C0      		rjmp .L35
+  56               	.L2:
+  57               	.LBB5:
+ 128:../../tmk_core/common/keymap.c ****         case KC_A ... KC_EXSEL:
+ 129:../../tmk_core/common/keymap.c ****         case KC_LCTRL ... KC_RGUI:
+ 130:../../tmk_core/common/keymap.c ****             action.code = ACTION_KEY(keycode);
+ 131:../../tmk_core/common/keymap.c ****             break;
+ 132:../../tmk_core/common/keymap.c ****         case KC_SYSTEM_POWER ... KC_SYSTEM_WAKE:
+ 133:../../tmk_core/common/keymap.c ****             action.code = ACTION_USAGE_SYSTEM(KEYCODE2SYSTEM(keycode));
+ 134:../../tmk_core/common/keymap.c ****             break;
+ 135:../../tmk_core/common/keymap.c ****         case KC_AUDIO_MUTE ... KC_MEDIA_REWIND:
+ 136:../../tmk_core/common/keymap.c ****             action.code = ACTION_USAGE_CONSUMER(KEYCODE2CONSUMER(keycode));
+ 137:../../tmk_core/common/keymap.c ****             break;
+ 138:../../tmk_core/common/keymap.c ****         case KC_MS_UP ... KC_MS_ACCEL2:
+ 139:../../tmk_core/common/keymap.c ****             action.code = ACTION_MOUSEKEY(keycode);
+ 140:../../tmk_core/common/keymap.c ****             break;
+ 141:../../tmk_core/common/keymap.c ****         case KC_TRNS:
+ 142:../../tmk_core/common/keymap.c ****             action.code = ACTION_TRANSPARENT;
+ 143:../../tmk_core/common/keymap.c ****             break;
+ 144:../../tmk_core/common/keymap.c ****         case KC_BOOTLOADER:
+ 145:../../tmk_core/common/keymap.c ****             clear_keyboard();
+ 146:../../tmk_core/common/keymap.c ****             wait_ms(50);
+ 147:../../tmk_core/common/keymap.c ****             bootloader_jump(); // not return
+ 148:../../tmk_core/common/keymap.c ****             break;
+ 149:../../tmk_core/common/keymap.c ****         default:
+ 150:../../tmk_core/common/keymap.c ****             action.code = ACTION_NO;
+  58               		.loc 1 150 0
+  59 0032 C0E0      		ldi r28,0
+  60 0034 D0E0      		ldi r29,0
+  61 0036 00C0      		rjmp .L7
+  62               	.L6:
+ 130:../../tmk_core/common/keymap.c ****             break;
+  63               		.loc 1 130 0
+  64 0038 C82F      		mov r28,r24
+  65 003a D0E0      		ldi r29,0
+  66               	.LVL1:
+ 131:../../tmk_core/common/keymap.c ****         case KC_SYSTEM_POWER ... KC_SYSTEM_WAKE:
+  67               		.loc 1 131 0
+  68 003c 00C0      		rjmp .L7
+  69               	.LVL2:
+  70               	.L5:
+ 133:../../tmk_core/common/keymap.c ****             break;
+  71               		.loc 1 133 0
+  72 003e 853A      		cpi r24,lo8(-91)
+  73 0040 01F4      		brne .+2
+  74 0042 00C0      		rjmp .L12
+ 133:../../tmk_core/common/keymap.c ****             break;
+  75               		.loc 1 133 0 is_stmt 0 discriminator 1
+  76 0044 863A      		cpi r24,lo8(-90)
+  77 0046 01F4      		brne .+2
+  78 0048 00C0      		rjmp .L13
+ 133:../../tmk_core/common/keymap.c ****             break;
+  79               		.loc 1 133 0
+  80 004a C3E8      		ldi r28,lo8(-125)
+  81 004c D0E4      		ldi r29,lo8(64)
+  82 004e 00C0      		rjmp .L7
+  83               	.L4:
+ 136:../../tmk_core/common/keymap.c ****             break;
+  84               		.loc 1 136 0 is_stmt 1
+  85 0050 883A      		cpi r24,lo8(-88)
+  86 0052 01F4      		brne .+2
+  87 0054 00C0      		rjmp .L14
+ 136:../../tmk_core/common/keymap.c ****             break;
+  88               		.loc 1 136 0 is_stmt 0 discriminator 1
+  89 0056 893A      		cpi r24,lo8(-87)
+  90 0058 01F4      		brne .+2
+  91 005a 00C0      		rjmp .L15
+ 136:../../tmk_core/common/keymap.c ****             break;
+  92               		.loc 1 136 0 discriminator 3
+  93 005c 8A3A      		cpi r24,lo8(-86)
+  94 005e 01F4      		brne .+2
+  95 0060 00C0      		rjmp .L16
+ 136:../../tmk_core/common/keymap.c ****             break;
+  96               		.loc 1 136 0 discriminator 5
+  97 0062 8B3A      		cpi r24,lo8(-85)
+  98 0064 01F4      		brne .+2
+  99 0066 00C0      		rjmp .L17
+ 136:../../tmk_core/common/keymap.c ****             break;
+ 100               		.loc 1 136 0 discriminator 7
+ 101 0068 8C3A      		cpi r24,lo8(-84)
+ 102 006a 01F4      		brne .+2
+ 103 006c 00C0      		rjmp .L18
+ 136:../../tmk_core/common/keymap.c ****             break;
+ 104               		.loc 1 136 0 discriminator 9
+ 105 006e 8B3B      		cpi r24,lo8(-69)
+ 106 0070 01F4      		brne .+2
+ 107 0072 00C0      		rjmp .L19
+ 136:../../tmk_core/common/keymap.c ****             break;
+ 108               		.loc 1 136 0 discriminator 11
+ 109 0074 8C3B      		cpi r24,lo8(-68)
+ 110 0076 01F4      		brne .+2
+ 111 0078 00C0      		rjmp .L20
+ 136:../../tmk_core/common/keymap.c ****             break;
+ 112               		.loc 1 136 0 discriminator 13
+ 113 007a 8D3A      		cpi r24,lo8(-83)
+ 114 007c 01F4      		brne .+2
+ 115 007e 00C0      		rjmp .L21
+ 136:../../tmk_core/common/keymap.c ****             break;
+ 116               		.loc 1 136 0 discriminator 15
+ 117 0080 803B      		cpi r24,lo8(-80)
+ 118 0082 01F4      		brne .+2
+ 119 0084 00C0      		rjmp .L22
+ 136:../../tmk_core/common/keymap.c ****             break;
+ 120               		.loc 1 136 0 discriminator 17
+ 121 0086 8E3A      		cpi r24,lo8(-82)
+ 122 0088 01F4      		brne .+2
+ 123 008a 00C0      		rjmp .L23
+ 136:../../tmk_core/common/keymap.c ****             break;
+ 124               		.loc 1 136 0 discriminator 19
+ 125 008c 8F3A      		cpi r24,lo8(-81)
+ 126 008e 01F4      		brne .+2
+ 127 0090 00C0      		rjmp .L24
+ 136:../../tmk_core/common/keymap.c ****             break;
+ 128               		.loc 1 136 0 discriminator 21
+ 129 0092 813B      		cpi r24,lo8(-79)
+ 130 0094 01F4      		brne .+2
+ 131 0096 00C0      		rjmp .L25
+ 136:../../tmk_core/common/keymap.c ****             break;
+ 132               		.loc 1 136 0 discriminator 23
+ 133 0098 823B      		cpi r24,lo8(-78)
+ 134 009a 01F4      		brne .+2
+ 135 009c 00C0      		rjmp .L26
+ 136:../../tmk_core/common/keymap.c ****             break;
+ 136               		.loc 1 136 0 discriminator 25
+ 137 009e 833B      		cpi r24,lo8(-77)
+ 138 00a0 01F4      		brne .+2
+ 139 00a2 00C0      		rjmp .L27
+ 136:../../tmk_core/common/keymap.c ****             break;
+ 140               		.loc 1 136 0 discriminator 27
+ 141 00a4 843B      		cpi r24,lo8(-76)
+ 142 00a6 01F4      		brne .+2
+ 143 00a8 00C0      		rjmp .L28
+ 136:../../tmk_core/common/keymap.c ****             break;
+ 144               		.loc 1 136 0 discriminator 29
+ 145 00aa 853B      		cpi r24,lo8(-75)
+ 146 00ac 01F4      		brne .+2
+ 147 00ae 00C0      		rjmp .L29
+ 136:../../tmk_core/common/keymap.c ****             break;
+ 148               		.loc 1 136 0 discriminator 31
+ 149 00b0 863B      		cpi r24,lo8(-74)
+ 150 00b2 01F4      		brne .+2
+ 151 00b4 00C0      		rjmp .L30
+ 136:../../tmk_core/common/keymap.c ****             break;
+ 152               		.loc 1 136 0 discriminator 33
+ 153 00b6 873B      		cpi r24,lo8(-73)
+ 154 00b8 01F4      		brne .+2
+ 155 00ba 00C0      		rjmp .L31
+ 136:../../tmk_core/common/keymap.c ****             break;
+ 156               		.loc 1 136 0 discriminator 35
+ 157 00bc 883B      		cpi r24,lo8(-72)
+ 158 00be 01F4      		brne .+2
+ 159 00c0 00C0      		rjmp .L32
+ 136:../../tmk_core/common/keymap.c ****             break;
+ 160               		.loc 1 136 0 discriminator 37
+ 161 00c2 893B      		cpi r24,lo8(-71)
+ 162 00c4 01F4      		brne .+2
+ 163 00c6 00C0      		rjmp .L33
+ 136:../../tmk_core/common/keymap.c ****             break;
+ 164               		.loc 1 136 0 discriminator 39
+ 165 00c8 8A3B      		cpi r24,lo8(-70)
+ 166 00ca 01F4      		brne .+2
+ 167 00cc 00C0      		rjmp .L34
+ 136:../../tmk_core/common/keymap.c ****             break;
+ 168               		.loc 1 136 0
+ 169 00ce C0E0      		ldi r28,0
+ 170 00d0 D4E4      		ldi r29,lo8(68)
+ 171 00d2 00C0      		rjmp .L7
+ 172               	.L35:
+ 139:../../tmk_core/common/keymap.c ****             break;
+ 173               		.loc 1 139 0 is_stmt 1
+ 174 00d4 C82F      		mov r28,r24
+ 175 00d6 D0E0      		ldi r29,0
+ 176 00d8 D065      		ori r29,80
+ 177               	.LVL3:
+ 140:../../tmk_core/common/keymap.c ****         case KC_TRNS:
+ 178               		.loc 1 140 0
+ 179 00da 00C0      		rjmp .L7
+ 180               	.LVL4:
+ 181               	.L9:
+ 145:../../tmk_core/common/keymap.c ****             wait_ms(50);
+ 182               		.loc 1 145 0
+ 183 00dc 0E94 0000 		call clear_keyboard
+ 184               	.LVL5:
+ 185               	.LBB6:
+ 186               	.LBB7:
+ 187               		.file 2 "/usr/avr/include/util/delay.h"
+   1:/usr/avr/include/util/delay.h **** /* Copyright (c) 2002, Marek Michalkiewicz
+   2:/usr/avr/include/util/delay.h ****    Copyright (c) 2004,2005,2007 Joerg Wunsch
+   3:/usr/avr/include/util/delay.h ****    Copyright (c) 2007  Florin-Viorel Petrov
+   4:/usr/avr/include/util/delay.h ****    All rights reserved.
+   5:/usr/avr/include/util/delay.h **** 
+   6:/usr/avr/include/util/delay.h ****    Redistribution and use in source and binary forms, with or without
+   7:/usr/avr/include/util/delay.h ****    modification, are permitted provided that the following conditions are met:
+   8:/usr/avr/include/util/delay.h **** 
+   9:/usr/avr/include/util/delay.h ****    * Redistributions of source code must retain the above copyright
+  10:/usr/avr/include/util/delay.h ****      notice, this list of conditions and the following disclaimer.
+  11:/usr/avr/include/util/delay.h **** 
+  12:/usr/avr/include/util/delay.h ****    * Redistributions in binary form must reproduce the above copyright
+  13:/usr/avr/include/util/delay.h ****      notice, this list of conditions and the following disclaimer in
+  14:/usr/avr/include/util/delay.h ****      the documentation and/or other materials provided with the
+  15:/usr/avr/include/util/delay.h ****      distribution.
+  16:/usr/avr/include/util/delay.h **** 
+  17:/usr/avr/include/util/delay.h ****    * Neither the name of the copyright holders nor the names of
+  18:/usr/avr/include/util/delay.h ****      contributors may be used to endorse or promote products derived
+  19:/usr/avr/include/util/delay.h ****      from this software without specific prior written permission.
+  20:/usr/avr/include/util/delay.h **** 
+  21:/usr/avr/include/util/delay.h ****   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  22:/usr/avr/include/util/delay.h ****   AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  23:/usr/avr/include/util/delay.h ****   IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  24:/usr/avr/include/util/delay.h ****   ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+  25:/usr/avr/include/util/delay.h ****   LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+  26:/usr/avr/include/util/delay.h ****   CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+  27:/usr/avr/include/util/delay.h ****   SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  28:/usr/avr/include/util/delay.h ****   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  29:/usr/avr/include/util/delay.h ****   CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+  30:/usr/avr/include/util/delay.h ****   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  31:/usr/avr/include/util/delay.h ****   POSSIBILITY OF SUCH DAMAGE. */
+  32:/usr/avr/include/util/delay.h **** 
+  33:/usr/avr/include/util/delay.h **** /* $Id: delay.h.in 2251 2011-09-14 08:20:33Z joerg_wunsch $ */
+  34:/usr/avr/include/util/delay.h **** 
+  35:/usr/avr/include/util/delay.h **** #ifndef _UTIL_DELAY_H_
+  36:/usr/avr/include/util/delay.h **** #define _UTIL_DELAY_H_ 1
+  37:/usr/avr/include/util/delay.h **** 
+  38:/usr/avr/include/util/delay.h **** #ifndef __HAS_DELAY_CYCLES
+  39:/usr/avr/include/util/delay.h **** #define __HAS_DELAY_CYCLES 1
+  40:/usr/avr/include/util/delay.h **** #endif
+  41:/usr/avr/include/util/delay.h **** 
+  42:/usr/avr/include/util/delay.h **** #include <inttypes.h>
+  43:/usr/avr/include/util/delay.h **** #include <util/delay_basic.h>
+  44:/usr/avr/include/util/delay.h **** #include <math.h>
+  45:/usr/avr/include/util/delay.h **** 
+  46:/usr/avr/include/util/delay.h **** /** \file */
+  47:/usr/avr/include/util/delay.h **** /** \defgroup util_delay <util/delay.h>: Convenience functions for busy-wait delay loops
+  48:/usr/avr/include/util/delay.h ****     \code
+  49:/usr/avr/include/util/delay.h ****     #define F_CPU 1000000UL  // 1 MHz
+  50:/usr/avr/include/util/delay.h ****     //#define F_CPU 14.7456E6
+  51:/usr/avr/include/util/delay.h ****     #include <util/delay.h>
+  52:/usr/avr/include/util/delay.h ****     \endcode
+  53:/usr/avr/include/util/delay.h **** 
+  54:/usr/avr/include/util/delay.h ****     \note As an alternative method, it is possible to pass the
+  55:/usr/avr/include/util/delay.h ****     F_CPU macro down to the compiler from the Makefile.
+  56:/usr/avr/include/util/delay.h ****     Obviously, in that case, no \c \#define statement should be
+  57:/usr/avr/include/util/delay.h ****     used.
+  58:/usr/avr/include/util/delay.h **** 
+  59:/usr/avr/include/util/delay.h ****     The functions in this header file are wrappers around the basic
+  60:/usr/avr/include/util/delay.h ****     busy-wait functions from <util/delay_basic.h>.  They are meant as
+  61:/usr/avr/include/util/delay.h ****     convenience functions where actual time values can be specified
+  62:/usr/avr/include/util/delay.h ****     rather than a number of cycles to wait for.  The idea behind is
+  63:/usr/avr/include/util/delay.h ****     that compile-time constant expressions will be eliminated by
+  64:/usr/avr/include/util/delay.h ****     compiler optimization so floating-point expressions can be used
+  65:/usr/avr/include/util/delay.h ****     to calculate the number of delay cycles needed based on the CPU
+  66:/usr/avr/include/util/delay.h ****     frequency passed by the macro F_CPU.
+  67:/usr/avr/include/util/delay.h **** 
+  68:/usr/avr/include/util/delay.h ****     \note In order for these functions to work as intended, compiler
+  69:/usr/avr/include/util/delay.h ****     optimizations <em>must</em> be enabled, and the delay time
+  70:/usr/avr/include/util/delay.h ****     <em>must</em> be an expression that is a known constant at
+  71:/usr/avr/include/util/delay.h ****     compile-time.  If these requirements are not met, the resulting
+  72:/usr/avr/include/util/delay.h ****     delay will be much longer (and basically unpredictable), and
+  73:/usr/avr/include/util/delay.h ****     applications that otherwise do not use floating-point calculations
+  74:/usr/avr/include/util/delay.h ****     will experience severe code bloat by the floating-point library
+  75:/usr/avr/include/util/delay.h ****     routines linked into the application.
+  76:/usr/avr/include/util/delay.h **** 
+  77:/usr/avr/include/util/delay.h ****     The functions available allow the specification of microsecond, and
+  78:/usr/avr/include/util/delay.h ****     millisecond delays directly, using the application-supplied macro
+  79:/usr/avr/include/util/delay.h ****     F_CPU as the CPU clock frequency (in Hertz).
+  80:/usr/avr/include/util/delay.h **** 
+  81:/usr/avr/include/util/delay.h **** */
+  82:/usr/avr/include/util/delay.h **** 
+  83:/usr/avr/include/util/delay.h **** #if !defined(__DOXYGEN__)
+  84:/usr/avr/include/util/delay.h **** static inline void _delay_us(double __us) __attribute__((always_inline));
+  85:/usr/avr/include/util/delay.h **** static inline void _delay_ms(double __ms) __attribute__((always_inline));
+  86:/usr/avr/include/util/delay.h **** #endif
+  87:/usr/avr/include/util/delay.h **** 
+  88:/usr/avr/include/util/delay.h **** #ifndef F_CPU
+  89:/usr/avr/include/util/delay.h **** /* prevent compiler error by supplying a default */
+  90:/usr/avr/include/util/delay.h **** # warning "F_CPU not defined for <util/delay.h>"
+  91:/usr/avr/include/util/delay.h **** # define F_CPU 1000000UL
+  92:/usr/avr/include/util/delay.h **** #endif
+  93:/usr/avr/include/util/delay.h **** 
+  94:/usr/avr/include/util/delay.h **** #ifndef __OPTIMIZE__
+  95:/usr/avr/include/util/delay.h **** # warning "Compiler optimizations disabled; functions from <util/delay.h> won't work as designed"
+  96:/usr/avr/include/util/delay.h **** #endif
+  97:/usr/avr/include/util/delay.h **** 
+  98:/usr/avr/include/util/delay.h **** #if __HAS_DELAY_CYCLES && defined(__OPTIMIZE__) && \
+  99:/usr/avr/include/util/delay.h ****   !defined(__DELAY_BACKWARD_COMPATIBLE__) &&	   \
+ 100:/usr/avr/include/util/delay.h ****   __STDC_HOSTED__
+ 101:/usr/avr/include/util/delay.h **** #  include <math.h>
+ 102:/usr/avr/include/util/delay.h **** #endif
+ 103:/usr/avr/include/util/delay.h **** 
+ 104:/usr/avr/include/util/delay.h **** /**
+ 105:/usr/avr/include/util/delay.h ****    \ingroup util_delay
+ 106:/usr/avr/include/util/delay.h **** 
+ 107:/usr/avr/include/util/delay.h ****    Perform a delay of \c __ms milliseconds, using _delay_loop_2().
+ 108:/usr/avr/include/util/delay.h **** 
+ 109:/usr/avr/include/util/delay.h ****    The macro F_CPU is supposed to be defined to a
+ 110:/usr/avr/include/util/delay.h ****    constant defining the CPU clock frequency (in Hertz).
+ 111:/usr/avr/include/util/delay.h **** 
+ 112:/usr/avr/include/util/delay.h ****    The maximal possible delay is 262.14 ms / F_CPU in MHz.
+ 113:/usr/avr/include/util/delay.h **** 
+ 114:/usr/avr/include/util/delay.h ****    When the user request delay which exceed the maximum possible one,
+ 115:/usr/avr/include/util/delay.h ****    _delay_ms() provides a decreased resolution functionality. In this
+ 116:/usr/avr/include/util/delay.h ****    mode _delay_ms() will work with a resolution of 1/10 ms, providing
+ 117:/usr/avr/include/util/delay.h ****    delays up to 6.5535 seconds (independent from CPU frequency).  The
+ 118:/usr/avr/include/util/delay.h ****    user will not be informed about decreased resolution.
+ 119:/usr/avr/include/util/delay.h **** 
+ 120:/usr/avr/include/util/delay.h ****    If the avr-gcc toolchain has __builtin_avr_delay_cycles(unsigned long)
+ 121:/usr/avr/include/util/delay.h ****    support, maximal possible delay is 4294967.295 ms/ F_CPU in MHz. For
+ 122:/usr/avr/include/util/delay.h ****    values greater than the maximal possible delay, overflows results in
+ 123:/usr/avr/include/util/delay.h ****    no delay i.e., 0ms.
+ 124:/usr/avr/include/util/delay.h **** 
+ 125:/usr/avr/include/util/delay.h ****    Conversion of __us into clock cycles may not always result in integer.
+ 126:/usr/avr/include/util/delay.h ****    By default, the clock cycles rounded up to next integer. This ensures that
+ 127:/usr/avr/include/util/delay.h ****    the user gets atleast __us microseconds of delay.
+ 128:/usr/avr/include/util/delay.h **** 
+ 129:/usr/avr/include/util/delay.h ****    Alternatively, user can define __DELAY_ROUND_DOWN__ and __DELAY_ROUND_CLOSEST__
+ 130:/usr/avr/include/util/delay.h ****    to round down and round to closest integer.
+ 131:/usr/avr/include/util/delay.h **** 
+ 132:/usr/avr/include/util/delay.h ****    Note: The new implementation of _delay_ms(double __ms) with 
+ 133:/usr/avr/include/util/delay.h ****     __builtin_avr_delay_cycles(unsigned long) support is not backward compatible. 
+ 134:/usr/avr/include/util/delay.h ****    User can define __DELAY_BACKWARD_COMPATIBLE__ to get a backward compatible delay.
+ 135:/usr/avr/include/util/delay.h ****    Also, the backward compatible
+ 136:/usr/avr/include/util/delay.h ****    algorithm will be chosen if the code is compiled in a <em>freestanding
+ 137:/usr/avr/include/util/delay.h ****    environment</em> (GCC option \c -ffreestanding), as the math functions
+ 138:/usr/avr/include/util/delay.h ****    required for rounding are not available to the compiler then.
+ 139:/usr/avr/include/util/delay.h **** 
+ 140:/usr/avr/include/util/delay.h ****  */
+ 141:/usr/avr/include/util/delay.h **** void
+ 142:/usr/avr/include/util/delay.h **** _delay_ms(double __ms)
+ 143:/usr/avr/include/util/delay.h **** {
+ 144:/usr/avr/include/util/delay.h **** 	uint16_t __ticks;
+ 145:/usr/avr/include/util/delay.h **** 	double __tmp ; 
+ 146:/usr/avr/include/util/delay.h **** #if __HAS_DELAY_CYCLES && defined(__OPTIMIZE__) && \
+ 147:/usr/avr/include/util/delay.h ****   !defined(__DELAY_BACKWARD_COMPATIBLE__) &&	   \
+ 148:/usr/avr/include/util/delay.h ****   __STDC_HOSTED__
+ 149:/usr/avr/include/util/delay.h **** 	uint32_t __ticks_dc;
+ 150:/usr/avr/include/util/delay.h **** 	extern void __builtin_avr_delay_cycles(unsigned long);
+ 151:/usr/avr/include/util/delay.h **** 	__tmp = ((F_CPU) / 1e3) * __ms;
+ 152:/usr/avr/include/util/delay.h **** 
+ 153:/usr/avr/include/util/delay.h **** 	#if defined(__DELAY_ROUND_DOWN__)
+ 154:/usr/avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)fabs(__tmp);
+ 155:/usr/avr/include/util/delay.h **** 
+ 156:/usr/avr/include/util/delay.h **** 	#elif defined(__DELAY_ROUND_CLOSEST__)
+ 157:/usr/avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)(fabs(__tmp)+0.5);
+ 158:/usr/avr/include/util/delay.h **** 
+ 159:/usr/avr/include/util/delay.h **** 	#else
+ 160:/usr/avr/include/util/delay.h **** 		//round up by default
+ 161:/usr/avr/include/util/delay.h **** 		__ticks_dc = (uint32_t)(ceil(fabs(__tmp)));
+ 162:/usr/avr/include/util/delay.h **** 	#endif
+ 163:/usr/avr/include/util/delay.h **** 
+ 164:/usr/avr/include/util/delay.h **** 	__builtin_avr_delay_cycles(__ticks_dc);
+ 188               		.loc 2 164 0
+ 189 00e0 2FEF      		ldi r18,lo8(159999)
+ 190 00e2 80E7      		ldi r24,hi8(159999)
+ 191 00e4 92E0      		ldi r25,hlo8(159999)
+ 192 00e6 2150      		1: subi r18,1
+ 193 00e8 8040      		sbci r24,0
+ 194 00ea 9040      		sbci r25,0
+ 195 00ec 01F4      		brne 1b
+ 196 00ee 00C0      		rjmp .
+ 197 00f0 0000      		nop
+ 198               	.LBE7:
+ 199               	.LBE6:
+ 147:../../tmk_core/common/keymap.c ****             break;
+ 200               		.loc 1 147 0
+ 201 00f2 0E94 0000 		call bootloader_jump
+ 202               	.LVL6:
+ 148:../../tmk_core/common/keymap.c ****         default:
+ 203               		.loc 1 148 0
+ 204 00f6 00C0      		rjmp .L7
+ 205               	.LVL7:
+ 206               	.L11:
+ 142:../../tmk_core/common/keymap.c ****             break;
+ 207               		.loc 1 142 0
+ 208 00f8 C1E0      		ldi r28,lo8(1)
+ 209 00fa D0E0      		ldi r29,0
+ 210 00fc 00C0      		rjmp .L7
+ 211               	.L12:
+ 133:../../tmk_core/common/keymap.c ****             break;
+ 212               		.loc 1 133 0
+ 213 00fe C1E8      		ldi r28,lo8(-127)
+ 214 0100 D0E4      		ldi r29,lo8(64)
+ 215 0102 00C0      		rjmp .L7
+ 216               	.L13:
+ 217 0104 C2E8      		ldi r28,lo8(-126)
+ 218 0106 D0E4      		ldi r29,lo8(64)
+ 219 0108 00C0      		rjmp .L7
+ 220               	.L14:
+ 136:../../tmk_core/common/keymap.c ****             break;
+ 221               		.loc 1 136 0
+ 222 010a C2EE      		ldi r28,lo8(-30)
+ 223 010c D4E4      		ldi r29,lo8(68)
+ 224 010e 00C0      		rjmp .L7
+ 225               	.L15:
+ 226 0110 C9EE      		ldi r28,lo8(-23)
+ 227 0112 D4E4      		ldi r29,lo8(68)
+ 228 0114 00C0      		rjmp .L7
+ 229               	.L16:
+ 230 0116 CAEE      		ldi r28,lo8(-22)
+ 231 0118 D4E4      		ldi r29,lo8(68)
+ 232 011a 00C0      		rjmp .L7
+ 233               	.L17:
+ 234 011c C5EB      		ldi r28,lo8(-75)
+ 235 011e D4E4      		ldi r29,lo8(68)
+ 236 0120 00C0      		rjmp .L7
+ 237               	.L18:
+ 238 0122 C6EB      		ldi r28,lo8(-74)
+ 239 0124 D4E4      		ldi r29,lo8(68)
+ 240 0126 00C0      		rjmp .L7
+ 241               	.L19:
+ 242 0128 C3EB      		ldi r28,lo8(-77)
+ 243 012a D4E4      		ldi r29,lo8(68)
+ 244 012c 00C0      		rjmp .L7
+ 245               	.L20:
+ 246 012e C4EB      		ldi r28,lo8(-76)
+ 247 0130 D4E4      		ldi r29,lo8(68)
+ 248 0132 00C0      		rjmp .L7
+ 249               	.L21:
+ 250 0134 C7EB      		ldi r28,lo8(-73)
+ 251 0136 D4E4      		ldi r29,lo8(68)
+ 252 0138 00C0      		rjmp .L7
+ 253               	.L22:
+ 254 013a CCEC      		ldi r28,lo8(-52)
+ 255 013c D4E4      		ldi r29,lo8(68)
+ 256 013e 00C0      		rjmp .L7
+ 257               	.L23:
+ 258 0140 CDEC      		ldi r28,lo8(-51)
+ 259 0142 D4E4      		ldi r29,lo8(68)
+ 260 0144 00C0      		rjmp .L7
+ 261               	.L24:
+ 262 0146 C3E8      		ldi r28,lo8(-125)
+ 263 0148 D5E4      		ldi r29,lo8(69)
+ 264 014a 00C0      		rjmp .L7
+ 265               	.L25:
+ 266 014c CAE8      		ldi r28,lo8(-118)
+ 267 014e D5E4      		ldi r29,lo8(69)
+ 268 0150 00C0      		rjmp .L7
+ 269               	.L26:
+ 270 0152 C2E9      		ldi r28,lo8(-110)
+ 271 0154 D5E4      		ldi r29,lo8(69)
+ 272 0156 00C0      		rjmp .L7
+ 273               	.L27:
+ 274 0158 C4E9      		ldi r28,lo8(-108)
+ 275 015a D5E4      		ldi r29,lo8(69)
+ 276 015c 00C0      		rjmp .L7
+ 277               	.L28:
+ 278 015e C1E2      		ldi r28,lo8(33)
+ 279 0160 D6E4      		ldi r29,lo8(70)
+ 280 0162 00C0      		rjmp .L7
+ 281               	.L29:
+ 282 0164 C3E2      		ldi r28,lo8(35)
+ 283 0166 D6E4      		ldi r29,lo8(70)
+ 284 0168 00C0      		rjmp .L7
+ 285               	.L30:
+ 286 016a C4E2      		ldi r28,lo8(36)
+ 287 016c D6E4      		ldi r29,lo8(70)
+ 288 016e 00C0      		rjmp .L7
+ 289               	.L31:
+ 290 0170 C5E2      		ldi r28,lo8(37)
+ 291 0172 D6E4      		ldi r29,lo8(70)
+ 292 0174 00C0      		rjmp .L7
+ 293               	.L32:
+ 294 0176 C6E2      		ldi r28,lo8(38)
+ 295 0178 D6E4      		ldi r29,lo8(70)
+ 296 017a 00C0      		rjmp .L7
+ 297               	.L33:
+ 298 017c C7E2      		ldi r28,lo8(39)
+ 299 017e D6E4      		ldi r29,lo8(70)
+ 300 0180 00C0      		rjmp .L7
+ 301               	.L34:
+ 302 0182 CAE2      		ldi r28,lo8(42)
+ 303 0184 D6E4      		ldi r29,lo8(70)
+ 304               	.LVL8:
+ 305               	.L7:
+ 306               	.LBE5:
+ 151:../../tmk_core/common/keymap.c ****             break;
+ 152:../../tmk_core/common/keymap.c ****     }
+ 153:../../tmk_core/common/keymap.c ****     return action;
+ 154:../../tmk_core/common/keymap.c **** }
+ 307               		.loc 1 154 0
+ 308 0186 CE01      		movw r24,r28
+ 309               	/* epilogue start */
+ 310 0188 DF91      		pop r29
+ 311 018a CF91      		pop r28
+ 312               	.LVL9:
+ 313 018c 0895      		ret
+ 314               		.cfi_endproc
+ 315               	.LFE106:
+ 317               		.section	.text.action_for_key,"ax",@progbits
+ 318               	.global	action_for_key
+ 320               	action_for_key:
+ 321               	.LFB103:
+  32:../../tmk_core/common/keymap.c ****     uint8_t keycode = keymap_key_to_keycode(layer, key);
+ 322               		.loc 1 32 0
+ 323               		.cfi_startproc
+ 324               	.LVL10:
+ 325               	/* prologue: function */
+ 326               	/* frame size = 0 */
+ 327               	/* stack size = 0 */
+ 328               	.L__stack_usage = 0
+  33:../../tmk_core/common/keymap.c ****     switch (keycode) {
+ 329               		.loc 1 33 0
+ 330 0000 0E94 0000 		call keymap_key_to_keycode
+ 331               	.LVL11:
+  34:../../tmk_core/common/keymap.c ****         case KC_FN0 ... KC_FN31:
+ 332               		.loc 1 34 0
+ 333 0004 803E      		cpi r24,lo8(-32)
+ 334 0006 00F4      		brsh .L39
+ 335 0008 803C      		cpi r24,lo8(-64)
+ 336 000a 00F4      		brsh .L40
+ 337 000c 8133      		cpi r24,lo8(49)
+ 338 000e 01F4      		brne .+2
+ 339 0010 00C0      		rjmp .L41
+ 340 0012 00F4      		brsh .L42
+ 341 0014 8932      		cpi r24,lo8(41)
+ 342 0016 01F4      		brne .+2
+ 343 0018 00C0      		rjmp .L43
+ 344 001a 8A32      		cpi r24,lo8(42)
+ 345 001c 01F4      		brne .+2
+ 346 001e 00C0      		rjmp .L44
+ 347 0020 00C0      		rjmp .L38
+ 348               	.L42:
+ 349 0022 8933      		cpi r24,lo8(57)
+ 350 0024 01F0      		breq .L45
+ 351 0026 8238      		cpi r24,lo8(-126)
+ 352 0028 01F0      		breq .L45
+ 353 002a 8533      		cpi r24,lo8(53)
+ 354 002c 01F4      		brne .+2
+ 355 002e 00C0      		rjmp .L46
+ 356 0030 00C0      		rjmp .L38
+ 357               	.L39:
+ 358 0032 833E      		cpi r24,lo8(-29)
+ 359 0034 01F0      		breq .L47
+ 360 0036 00F4      		brsh .L48
+ 361 0038 803E      		cpi r24,lo8(-32)
+ 362 003a 01F0      		breq .L49
+ 363 003c 823E      		cpi r24,lo8(-30)
+ 364 003e 01F0      		breq .L50
+ 365 0040 00C0      		rjmp .L38
+ 366               	.L48:
+ 367 0042 863E      		cpi r24,lo8(-26)
+ 368 0044 01F0      		breq .L51
+ 369 0046 873E      		cpi r24,lo8(-25)
+ 370 0048 01F0      		breq .L52
+ 371 004a 00C0      		rjmp .L38
+ 372               	.L40:
+  36:../../tmk_core/common/keymap.c **** #ifdef BOOTMAGIC_ENABLE
+ 373               		.loc 1 36 0
+ 374 004c 0E94 0000 		call keymap_fn_to_action
+ 375               	.LVL12:
+ 376 0050 0895      		ret
+ 377               	.LVL13:
+ 378               	.L45:
+  40:../../tmk_core/common/keymap.c ****                 return keycode_to_action(KC_LCTL);
+ 379               		.loc 1 40 0
+ 380 0052 9091 0000 		lds r25,keymap_config
+ 381 0056 90FD      		sbrc r25,0
+ 382 0058 00C0      		rjmp .L54
+  40:../../tmk_core/common/keymap.c ****                 return keycode_to_action(KC_LCTL);
+ 383               		.loc 1 40 0 is_stmt 0 discriminator 1
+ 384 005a 91FF      		sbrs r25,1
+ 385 005c 00C0      		rjmp .L38
+ 386               	.LVL14:
+ 387               	.L54:
+  41:../../tmk_core/common/keymap.c ****             }
+ 388               		.loc 1 41 0 is_stmt 1
+ 389 005e 80EE      		ldi r24,lo8(-32)
+ 390 0060 00C0      		rjmp .L38
+ 391               	.LVL15:
+ 392               	.L49:
+  45:../../tmk_core/common/keymap.c ****                 return keycode_to_action(KC_CAPSLOCK);
+ 393               		.loc 1 45 0
+ 394 0062 8091 0000 		lds r24,keymap_config
+ 395               	.LVL16:
+ 396 0066 80FF      		sbrs r24,0
+ 397 0068 00C0      		rjmp .L54
+  46:../../tmk_core/common/keymap.c ****             }
+ 398               		.loc 1 46 0
+ 399 006a 89E3      		ldi r24,lo8(57)
+ 400 006c 00C0      		rjmp .L38
+ 401               	.LVL17:
+ 402               	.L50:
+  50:../../tmk_core/common/keymap.c ****                 if (keymap_config.no_gui) {
+ 403               		.loc 1 50 0
+ 404 006e 8091 0000 		lds r24,keymap_config
+ 405               	.LVL18:
+ 406 0072 82FF      		sbrs r24,2
+ 407 0074 00C0      		rjmp .L56
+ 408               	.L58:
+  51:../../tmk_core/common/keymap.c ****                     return keycode_to_action(ACTION_NO);
+ 409               		.loc 1 51 0
+ 410 0076 8091 0000 		lds r24,keymap_config
+ 411 007a 84FF      		sbrs r24,4
+ 412 007c 00C0      		rjmp .L57
+ 413               	.L60:
+  52:../../tmk_core/common/keymap.c ****                 }
+ 414               		.loc 1 52 0
+ 415 007e 80E0      		ldi r24,0
+ 416 0080 00C0      		rjmp .L38
+ 417               	.L57:
+  54:../../tmk_core/common/keymap.c ****             }
+ 418               		.loc 1 54 0
+ 419 0082 83EE      		ldi r24,lo8(-29)
+ 420 0084 00C0      		rjmp .L38
+ 421               	.LVL19:
+ 422               	.L47:
+  58:../../tmk_core/common/keymap.c ****                 return keycode_to_action(KC_LALT);
+ 423               		.loc 1 58 0
+ 424 0086 8091 0000 		lds r24,keymap_config
+ 425               	.LVL20:
+ 426 008a 82FF      		sbrs r24,2
+ 427 008c 00C0      		rjmp .L58
+ 428               	.L56:
+  56:../../tmk_core/common/keymap.c ****         case KC_LGUI:
+ 429               		.loc 1 56 0
+ 430 008e 82EE      		ldi r24,lo8(-30)
+ 431 0090 00C0      		rjmp .L38
+ 432               	.LVL21:
+ 433               	.L51:
+  66:../../tmk_core/common/keymap.c ****                 if (keymap_config.no_gui) {
+ 434               		.loc 1 66 0
+ 435 0092 8091 0000 		lds r24,keymap_config
+ 436               	.LVL22:
+ 437 0096 83FF      		sbrs r24,3
+ 438 0098 00C0      		rjmp .L59
+ 439               	.L61:
+  67:../../tmk_core/common/keymap.c ****                     return keycode_to_action(ACTION_NO);
+ 440               		.loc 1 67 0
+ 441 009a 8091 0000 		lds r24,keymap_config
+ 442 009e 84FD      		sbrc r24,4
+ 443 00a0 00C0      		rjmp .L60
+  70:../../tmk_core/common/keymap.c ****             }
+ 444               		.loc 1 70 0
+ 445 00a2 87EE      		ldi r24,lo8(-25)
+ 446 00a4 00C0      		rjmp .L38
+ 447               	.LVL23:
+ 448               	.L52:
+  74:../../tmk_core/common/keymap.c ****                 return keycode_to_action(KC_RALT);
+ 449               		.loc 1 74 0
+ 450 00a6 8091 0000 		lds r24,keymap_config
+ 451               	.LVL24:
+ 452 00aa 83FF      		sbrs r24,3
+ 453 00ac 00C0      		rjmp .L61
+ 454               	.L59:
+  72:../../tmk_core/common/keymap.c ****         case KC_RGUI:
+ 455               		.loc 1 72 0
+ 456 00ae 86EE      		ldi r24,lo8(-26)
+ 457 00b0 00C0      		rjmp .L38
+ 458               	.LVL25:
+ 459               	.L46:
+  82:../../tmk_core/common/keymap.c ****                 return keycode_to_action(KC_ESC);
+ 460               		.loc 1 82 0
+ 461 00b2 8091 0000 		lds r24,keymap_config
+ 462               	.LVL26:
+ 463 00b6 85FF      		sbrs r24,5
+ 464 00b8 00C0      		rjmp .L62
+ 465               	.L63:
+  83:../../tmk_core/common/keymap.c ****             }
+ 466               		.loc 1 83 0
+ 467 00ba 89E2      		ldi r24,lo8(41)
+ 468 00bc 00C0      		rjmp .L38
+ 469               	.LVL27:
+ 470               	.L43:
+  87:../../tmk_core/common/keymap.c ****                 return keycode_to_action(KC_GRAVE);
+ 471               		.loc 1 87 0
+ 472 00be 8091 0000 		lds r24,keymap_config
+ 473               	.LVL28:
+ 474 00c2 85FF      		sbrs r24,5
+ 475 00c4 00C0      		rjmp .L63
+ 476               	.L62:
+  85:../../tmk_core/common/keymap.c ****         case KC_ESC:
+ 477               		.loc 1 85 0
+ 478 00c6 85E3      		ldi r24,lo8(53)
+ 479 00c8 00C0      		rjmp .L38
+ 480               	.LVL29:
+ 481               	.L41:
+  92:../../tmk_core/common/keymap.c ****                 return keycode_to_action(KC_BSPACE);
+ 482               		.loc 1 92 0
+ 483 00ca 8091 0000 		lds r24,keymap_config
+ 484               	.LVL30:
+ 485 00ce 86FF      		sbrs r24,6
+ 486 00d0 00C0      		rjmp .L64
+ 487               	.L65:
+  93:../../tmk_core/common/keymap.c ****             }
+ 488               		.loc 1 93 0
+ 489 00d2 8AE2      		ldi r24,lo8(42)
+ 490 00d4 00C0      		rjmp .L38
+ 491               	.LVL31:
+ 492               	.L44:
+  97:../../tmk_core/common/keymap.c ****                 return keycode_to_action(KC_BSLASH);
+ 493               		.loc 1 97 0
+ 494 00d6 8091 0000 		lds r24,keymap_config
+ 495               	.LVL32:
+ 496 00da 86FF      		sbrs r24,6
+ 497 00dc 00C0      		rjmp .L65
+ 498               	.L64:
+  95:../../tmk_core/common/keymap.c ****         case KC_BSPACE:
+ 499               		.loc 1 95 0
+ 500 00de 81E3      		ldi r24,lo8(49)
+ 501               	.L38:
+ 103:../../tmk_core/common/keymap.c ****     }
+ 502               		.loc 1 103 0
+ 503 00e0 0E94 0000 		call keycode_to_action
+ 504               	.LVL33:
+ 105:../../tmk_core/common/keymap.c **** 
+ 505               		.loc 1 105 0
+ 506 00e4 0895      		ret
+ 507               		.cfi_endproc
+ 508               	.LFE103:
+ 510               		.section	.text.action_get_macro,"ax",@progbits
+ 511               		.weak	action_get_macro
+ 513               	action_get_macro:
+ 514               	.LFB104:
+ 111:../../tmk_core/common/keymap.c ****     return MACRO_NONE;
+ 515               		.loc 1 111 0
+ 516               		.cfi_startproc
+ 517               	.LVL34:
+ 518               	/* prologue: function */
+ 519               	/* frame size = 0 */
+ 520               	/* stack size = 0 */
+ 521               	.L__stack_usage = 0
+ 113:../../tmk_core/common/keymap.c **** 
+ 522               		.loc 1 113 0
+ 523 0000 80E0      		ldi r24,0
+ 524 0002 90E0      		ldi r25,0
+ 525               	.LVL35:
+ 526 0004 0895      		ret
+ 527               		.cfi_endproc
+ 528               	.LFE104:
+ 530               		.section	.text.action_function,"ax",@progbits
+ 531               		.weak	action_function
+ 533               	action_function:
+ 534               	.LFB105:
+ 118:../../tmk_core/common/keymap.c **** }
+ 535               		.loc 1 118 0
+ 536               		.cfi_startproc
+ 537               	.LVL36:
+ 538               	/* prologue: function */
+ 539               	/* frame size = 0 */
+ 540               	/* stack size = 0 */
+ 541               	.L__stack_usage = 0
+ 542 0000 0895      		ret
+ 543               		.cfi_endproc
+ 544               	.LFE105:
+ 546               		.comm	keymap_config,1,1
+ 547               		.text
+ 548               	.Letext0:
+ 549               		.file 3 "/usr/avr/include/stdint.h"
+ 550               		.file 4 "../../tmk_core/common/keyboard.h"
+ 551               		.file 5 "../../tmk_core/common/keycode.h"
+ 552               		.file 6 "../../tmk_core/common/action_code.h"
+ 553               		.file 7 "../../tmk_core/common/action_macro.h"
+ 554               		.file 8 "../../tmk_core/common/action.h"
+ 555               		.file 9 "../../tmk_core/common/keymap.h"
+ 556               		.file 10 "../../tmk_core/protocol/lufa/LUFA-git/LUFA/Drivers/USB/Core/USBTask.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 keymap.c
+     /tmp/ccVBc8jZ.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccVBc8jZ.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccVBc8jZ.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccVBc8jZ.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccVBc8jZ.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccVBc8jZ.s:12     .text.keycode_to_action:0000000000000000 keycode_to_action
+     /tmp/ccVBc8jZ.s:320    .text.action_for_key:0000000000000000 action_for_key
+                            *COM*:0000000000000001 keymap_config
+     /tmp/ccVBc8jZ.s:513    .text.action_get_macro:0000000000000000 action_get_macro
+     /tmp/ccVBc8jZ.s:533    .text.action_function:0000000000000000 action_function
+
+UNDEFINED SYMBOLS
+clear_keyboard
+bootloader_jump
+keymap_key_to_keycode
+keymap_fn_to_action
+__do_clear_bss
